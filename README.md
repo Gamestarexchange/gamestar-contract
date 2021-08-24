@@ -1,0 +1,1 @@
+# game-star-contract
