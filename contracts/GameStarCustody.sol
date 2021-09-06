@@ -16,18 +16,23 @@ contract GameStarCustody is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 token;
+    IERC20 private token;
 
-    mapping(address => uint256) staked;
-    mapping(address => uint256) withdrawal;
-    mapping(address => uint256) disputed;
+    uint256 private totalStaked;
+    uint256 private totalWithdrawal;
+    uint256 private totalDisputed;
+    mapping(address => uint256) private staked;
+    mapping(address => uint256) private withdrawal;
+    mapping(address => uint256) private disputed;
 
     event EventStake(address indexed user, uint256 amount);
+
     event EventWithdrawal(
         bytes16 indexed id,
         address indexed to,
         uint256 amount
     );
+
     event EventDispute(
         bytes16 indexed id,
         address indexed from,
@@ -48,6 +53,7 @@ contract GameStarCustody is Ownable {
         require(allowance >= amount, "invalid allowance");
         token.transferFrom(msg.sender, address(this), amount);
         staked[msg.sender] = staked[msg.sender].add(amount);
+        totalStaked = totalStaked.add(amount);
 
         emit EventStake(msg.sender, amount);
     }
@@ -63,6 +69,7 @@ contract GameStarCustody is Ownable {
         require(amount > 0, "invalid amount");
         withdrawal[to] = withdrawal[to].add(amount);
         token.transfer(to, amount);
+        totalWithdrawal = totalWithdrawal.add(amount);
 
         emit EventWithdrawal(id, to, amount);
     }
@@ -79,6 +86,7 @@ contract GameStarCustody is Ownable {
         require(amount > 0, "invalid amount");
         disputed[from] = disputed[from].add(amount);
         token.transfer(to, amount);
+        totalDisputed = totalDisputed.add(amount);
 
         emit EventDispute(id, from, to, amount);
     }
@@ -102,5 +110,26 @@ contract GameStarCustody is Ownable {
     //
     function getDisputed(address user) external view returns (uint256) {
         return disputed[user];
+    }
+
+    //
+    // get total staked
+    //
+    function getTotalStaked() external view returns (uint256) {
+        return totalStaked;
+    }
+
+    //
+    // get total withdrawal
+    //
+    function getTotalWithdrawal() external view returns (uint256) {
+        return totalWithdrawal;
+    }
+
+    //
+    // get total distputed
+    //
+    function getTotalDisputed() external view returns (uint256) {
+        return totalDisputed;
     }
 }
