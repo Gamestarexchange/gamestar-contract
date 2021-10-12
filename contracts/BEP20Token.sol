@@ -2,6 +2,8 @@
  *Submitted for verification at BscScan.com on 2020-09-02
 */
 
+// for test 
+// use 0.5.16 to compile
 pragma solidity 0.5.16;
 
 interface IBEP20 {
