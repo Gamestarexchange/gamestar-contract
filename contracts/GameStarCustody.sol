@@ -21,7 +21,7 @@ contract GameStarCustody is Ownable, ReentrancyGuard {
     IERC20 private token;
 
     uint256 private totalStaked;
-    address private _curstodyAddress;
+    address private _custodyAddress;
     mapping(address => uint256) private staked;
 
     event EventStake(address indexed user, uint256 amount);
@@ -45,7 +45,7 @@ contract GameStarCustody is Ownable, ReentrancyGuard {
 
         uint256 allowance = token.allowance(msg.sender, address(this));
         require(allowance >= amount, "invalid allowance");
-        token.transferFrom(msg.sender, _curstodyAddress, amount);
+        token.transferFrom(msg.sender, _custodyAddress, amount);
         emit EventStake(msg.sender, amount);
     }
 
@@ -62,8 +62,8 @@ contract GameStarCustody is Ownable, ReentrancyGuard {
     }
 
     function _setCustody(address newCustodyAddress) private {
-        address oldCustodyAddress = _curstodyAddress;
-        _curstodyAddress = newCustodyAddress;
+        address oldCustodyAddress = _custodyAddress;
+        _custodyAddress = newCustodyAddress;
         emit EventCustodyAddressTransferred(
             oldCustodyAddress,
             newCustodyAddress
@@ -88,6 +88,6 @@ contract GameStarCustody is Ownable, ReentrancyGuard {
     // get current custody address
     //
     function getCustodyAddress() external view returns (address) {
-        return _curstodyAddress;
+        return _custodyAddress;
     }
 }
