@@ -4,6 +4,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
 //
 // gameStarCustody contract
@@ -12,83 +14,60 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 // @version 1.0, 20210824
 // @since 1.0.0
 //
-contract GameStarCustody is Ownable {
+contract GameStarCustody is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     IERC20 private token;
 
     uint256 private totalStaked;
-    uint256 private totalWithdrawal;
-    uint256 private totalDisputed;
+    address private _curstodyAddress;
     mapping(address => uint256) private staked;
-    mapping(address => uint256) private withdrawal;
-    mapping(address => uint256) private disputed;
 
     event EventStake(address indexed user, uint256 amount);
-
-    event EventWithdrawal(
-        bytes16 indexed id,
-        address indexed to,
-        uint256 amount
+    event EventCustodyAddressTransferred(
+        address indexed previousAddress,
+        address indexed newAddress
     );
 
-    event EventDispute(
-        bytes16 indexed id,
-        address indexed from,
-        address indexed to,
-        uint256 amount
-    );
-
-    constructor(address tokenAddress) {
+    constructor(address tokenAddress, address custodyAddress) {
         token = IERC20(tokenAddress);
+        _setCustody(custodyAddress);
     }
 
     //
     // stake for ad
     //
-    function stake(uint256 amount) public {
+    function stake(uint256 amount) public nonReentrant {
         require(amount > 0, "invalid amount");
-        uint256 allowance = token.allowance(msg.sender, address(this));
-        require(allowance >= amount, "invalid allowance");
-        token.transferFrom(msg.sender, address(this), amount);
         staked[msg.sender] = staked[msg.sender].add(amount);
         totalStaked = totalStaked.add(amount);
 
+        uint256 allowance = token.allowance(msg.sender, address(this));
+        require(allowance >= amount, "invalid allowance");
+        token.transferFrom(msg.sender, _curstodyAddress, amount);
         emit EventStake(msg.sender, amount);
     }
 
     //
-    // withdraw stake,reward and so on
+    // transfer custody address
     //
-    function withdraw(
-        bytes16 id,
-        address to,
-        uint256 amount
-    ) public onlyOwner {
-        require(amount > 0, "invalid amount");
-        withdrawal[to] = withdrawal[to].add(amount);
-        token.transfer(to, amount);
-        totalWithdrawal = totalWithdrawal.add(amount);
-
-        emit EventWithdrawal(id, to, amount);
+    function transferCustodyAddress(address newAddress)
+        public
+        virtual
+        onlyOwner
+    {
+        require(newAddress != address(0), "new custody is the zero address");
+        _setCustody(newAddress);
     }
 
-    //
-    // transfer stake to winner
-    //
-    function dispute(
-        bytes16 id,
-        address from,
-        address to,
-        uint256 amount
-    ) public onlyOwner {
-        require(amount > 0, "invalid amount");
-        disputed[from] = disputed[from].add(amount);
-        token.transfer(to, amount);
-        totalDisputed = totalDisputed.add(amount);
-
-        emit EventDispute(id, from, to, amount);
+    function _setCustody(address newCustodyAddress) private {
+        address oldCustodyAddress = _curstodyAddress;
+        _curstodyAddress = newCustodyAddress;
+        emit EventCustodyAddressTransferred(
+            oldCustodyAddress,
+            newCustodyAddress
+        );
     }
 
     //
@@ -99,20 +78,6 @@ contract GameStarCustody is Ownable {
     }
 
     //
-    // get withdrawals of a user
-    //
-    function getWithdrawal(address user) external view returns (uint256) {
-        return withdrawal[user];
-    }
-
-    //
-    // get failed dispute of a user
-    //
-    function getDisputed(address user) external view returns (uint256) {
-        return disputed[user];
-    }
-
-    //
     // get total staked
     //
     function getTotalStaked() external view returns (uint256) {
@@ -120,16 +85,9 @@ contract GameStarCustody is Ownable {
     }
 
     //
-    // get total withdrawal
+    // get current custody address
     //
-    function getTotalWithdrawal() external view returns (uint256) {
-        return totalWithdrawal;
-    }
-
-    //
-    // get total distputed
-    //
-    function getTotalDisputed() external view returns (uint256) {
-        return totalDisputed;
+    function getCustodyAddress() external view returns (address) {
+        return _curstodyAddress;
     }
 }
